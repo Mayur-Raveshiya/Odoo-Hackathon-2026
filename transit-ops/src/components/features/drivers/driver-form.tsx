@@ -4,10 +4,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { Driver } from './driver-table';
 
-export function DriverForm({ open, onOpenChange, driver }: { open: boolean, onOpenChange: (open: boolean) => void, driver?: Driver | null }) {
+export function DriverForm({ open, onOpenChange, driver, onSave }: { open: boolean, onOpenChange: (open: boolean) => void, driver?: Driver | null, onSave?: (data: Partial<Driver>) => void }) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onOpenChange(false);
+    const formData = new FormData(e.target as HTMLFormElement);
+    if (onSave) {
+      onSave({
+        fullName: formData.get('name') as string,
+        contactNumber: formData.get('contact') as string,
+        email: formData.get('email') as string,
+        licenseNumber: formData.get('license') as string,
+        licenseCategory: formData.get('category') as string,
+        licenseExpiryDate: formData.get('expiry') as string,
+        safetyScore: Number(formData.get('safety')) || 100,
+      });
+    } else {
+      onOpenChange(false);
+    }
   };
 
   return (
@@ -24,39 +37,39 @@ export function DriverForm({ open, onOpenChange, driver }: { open: boolean, onOp
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
-                <Input id="name" required defaultValue={driver?.fullName} placeholder="Jane Doe" />
+                <Input id="name" name="name" required defaultValue={driver?.fullName} placeholder="Jane Doe" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="contact">Contact Number</Label>
-                <Input id="contact" required defaultValue={driver?.contactNumber} placeholder="+1 555-0192" />
+                <Input id="contact" name="contact" required defaultValue={driver?.contactNumber} placeholder="+1 555-0000" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" required defaultValue={driver?.email} placeholder="jane@example.com" />
+                <Input id="email" name="email" required type="email" defaultValue={driver?.email} placeholder="jane@example.com" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="license">License Number</Label>
-                <Input id="license" required defaultValue={driver?.licenseNumber} placeholder="DL-12345678" />
+                <Input id="license" name="license" required defaultValue={driver?.licenseNumber} placeholder="DL-000000" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="category">License Category</Label>
-                <Input id="category" required defaultValue={driver?.licenseCategory} placeholder="Class A" />
+                <Input id="category" name="category" required defaultValue={driver?.licenseCategory} placeholder="Class A" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="expiry">License Expiry Date</Label>
-                <Input id="expiry" type="date" required defaultValue={driver?.licenseExpiryDate} />
+                <Label htmlFor="expiry">Expiry Date</Label>
+                <Input id="expiry" name="expiry" required type="date" defaultValue={driver?.licenseExpiryDate} />
               </div>
             </div>
             {driver && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="score">Safety Score (0-100)</Label>
-                  <Input id="score" type="number" min="0" max="100" required defaultValue={driver?.safetyScore} />
-                </div>
+                <Label htmlFor="safety">Safety Score (0-100)</Label>
+                <Input id="safety" name="safety" required type="number" min="0" max="100" defaultValue={driver?.safetyScore ?? 100} />
+              </div>
               </div>
             )}
           </div>

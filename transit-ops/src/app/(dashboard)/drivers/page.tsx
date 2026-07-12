@@ -1,6 +1,7 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DriverSummaryCards } from '@/components/features/drivers/driver-summary-cards';
 import { DriverFilters } from '@/components/features/drivers/driver-filters';
 import { DriverTable, type Driver } from '@/components/features/drivers/driver-table';
@@ -9,63 +10,45 @@ import { DriverForm } from '@/components/features/drivers/driver-form';
 import { DriverDeleteAlert } from '@/components/features/drivers/driver-delete-alert';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-
-const mockDrivers: Driver[] = [
-  {
-    id: 'd1',
-    fullName: 'Jane Doe',
-    contactNumber: '+1 555-0192',
-    email: 'jane@transitops.com',
-    licenseNumber: 'DL-98765432',
-    licenseCategory: 'Class A',
-    licenseExpiryDate: '2028-12-31',
-    safetyScore: 98,
-    status: 'Available',
-    createdAt: '2024-05-12',
-  },
-  {
-    id: 'd2',
-    fullName: 'Michael Scott',
-    contactNumber: '+1 555-2244',
-    email: 'mscott@transitops.com',
-    licenseNumber: 'DL-12345678',
-    licenseCategory: 'Class B',
-    licenseExpiryDate: '2025-01-01',
-    safetyScore: 65,
-    status: 'Suspended',
-    createdAt: '2025-01-02',
-  },
-  {
-    id: 'd3',
-    fullName: 'Sarah Connor',
-    contactNumber: '+1 555-9988',
-    email: 'sconnor@transitops.com',
-    licenseNumber: 'DL-55555555',
-    licenseCategory: 'Class A',
-    licenseExpiryDate: '2027-06-15',
-    safetyScore: 100,
-    status: 'On Trip',
-    createdAt: '2025-02-28',
-  },
-  {
-    id: 'd4',
-    fullName: 'Dwight Schrute',
-    contactNumber: '+1 555-4433',
-    email: 'dschrute@transitops.com',
-    licenseNumber: 'DL-33344455',
-    licenseCategory: 'Class C',
-    licenseExpiryDate: '2029-11-20',
-    safetyScore: 88,
-    status: 'Off Duty',
-    createdAt: '2024-10-10',
-  }
-];
+import { getDriversAction, createDriverAction, updateDriverAction, deleteDriverAction } from './actions';
 
 export default function DriversPage() {
+  const [drivers, setDrivers] = useState<Driver[]>([]);
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const fetchDrivers = async () => {
+    const data = await getDriversAction();
+    setDrivers(data);
+  };
+
+  useEffect(() => {
+    fetchDrivers();
+  }, []);
+
+  const handleSaveForm = async (data: Partial<Driver>) => {
+    if (selectedDriver) {
+      await updateDriverAction(selectedDriver.id, data);
+    } else {
+      await createDriverAction({
+        ...data,
+        id: `d${Date.now()}`,
+        status: 'Available',
+        createdAt: new Date().toISOString().split('T')[0]
+      } as Driver);
+    }
+    setIsFormOpen(false);
+    fetchDrivers();
+  };
+
+  const handleConfirmDelete = async () => {
+    if (selectedDriver) {
+      await deleteDriverAction(selectedDriver.id);
+      setIsDeleteOpen(false);
+      fetchDrivers();
+    }
+  };
 
   const handleView = (driver: Driver) => {
     setSelectedDriver(driver);
@@ -105,7 +88,7 @@ export default function DriversPage() {
       <div className="mt-4">
         <DriverFilters />
         <DriverTable 
-          drivers={mockDrivers} 
+          drivers={drivers} 
           onView={handleView} 
           onEdit={handleEdit} 
           onDelete={handleDelete} 
@@ -121,13 +104,14 @@ export default function DriversPage() {
       <DriverForm 
         open={isFormOpen} 
         onOpenChange={setIsFormOpen} 
-        driver={selectedDriver} 
+        driver={selectedDriver}
+        onSave={handleSaveForm}
       />
 
       <DriverDeleteAlert 
         open={isDeleteOpen} 
         onOpenChange={setIsDeleteOpen} 
-        onConfirm={() => setIsDeleteOpen(false)} 
+        onConfirm={handleConfirmDelete} 
         driverName={selectedDriver?.fullName} 
       />
     </div>

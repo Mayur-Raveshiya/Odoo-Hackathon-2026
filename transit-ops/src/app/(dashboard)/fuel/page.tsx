@@ -1,48 +1,56 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { OperationsSummaryCards } from '@/components/features/operations/operations-summary-cards';
 import { OperationsFilters } from '@/components/features/operations/operations-filters';
 import { OperationsTable, type ColumnDef } from '@/components/features/operations/operations-table';
 import { Button } from '@/components/ui/button';
 import { Fuel, DollarSign, TrendingUp, Plus } from 'lucide-react';
 import type { FuelLog } from '@/lib/services/fuel.service';
-import { recordFuelAction } from './actions';
+import { getFuelLogsAction, recordFuelAction } from './actions';
+import { getVehiclesAction } from '../vehicles/actions';
 import type { Vehicle } from '@/components/features/vehicles/vehicle-table';
 
-const initialVehicles: Vehicle[] = [
-  { id: 'v1', registrationNumber: 'TRK-0001', name: 'Volvo FH16', type: 'Heavy Truck', manufacturer: 'Volvo', model: 'FH16', maxLoad: 25000, status: 'Available', odometer: 120500, acquisitionCost: 150000, createdAt: '2024-01-10' },
-];
-
-const initialLogs: FuelLog[] = [
-  { id: 'FL-001', vehicleId: 'v1', date: '2025-06-12', liters: 150, cost: 450, odometer: 119000, efficiency: 0 },
-];
-
 export default function FuelPage() {
-  const [logs, setLogs] = useState<FuelLog[]>(initialLogs);
-  const [vehicles, setVehicles] = useState<Vehicle[]>(initialVehicles);
-  const [loading, setLoading] = useState(false);
+  const [logs, setLogs] = useState<FuelLog[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const getVehicle = (id: string) => vehicles.find(v => v.id === id)!;
+  const fetchData = async () => {
+    setLoading(true);
+    const [l, v] = await Promise.all([getFuelLogsAction(), getVehiclesAction()]);
+    setLogs(l);
+    setVehicles(v);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+
 
   const handleRecordFuel = async () => {
+    if (vehicles.length === 0) return alert('No vehicles available.');
+    const targetVehicle = vehicles[0];
+
     setLoading(true);
     const newLog: FuelLog = {
       id: `FL-${Math.floor(100 + Math.random() * 900)}`,
-      vehicleId: 'v1',
+      vehicleId: targetVehicle.id,
       date: new Date().toISOString().split('T')[0],
       liters: 200,
       cost: 600,
-      odometer: 120500
+      odometer: targetVehicle.odometer + 500
     };
     
-    const res = await recordFuelAction(newLog, getVehicle('v1'));
-    setLoading(false);
+    const res = await recordFuelAction(newLog);
     
-    if (res.success && res.data) {
-      setLogs([res.data.log, ...logs]);
-      setVehicles(prev => prev.map(v => v.id === res.data.vehicle.id ? res.data.vehicle : v));
+    if (res.success) {
+      await fetchData();
     } else {
+      setLoading(false);
       alert(res.error);
     }
   };

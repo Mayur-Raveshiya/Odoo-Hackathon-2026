@@ -1,6 +1,7 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { OperationsSummaryCards } from '@/components/features/operations/operations-summary-cards';
 import { OperationsFilters } from '@/components/features/operations/operations-filters';
 import { OperationsTable, type ColumnDef } from '@/components/features/operations/operations-table';
@@ -8,16 +9,22 @@ import { OperationsStatusBadge } from '@/components/features/operations/operatio
 import { Button } from '@/components/ui/button';
 import { DollarSign, CheckCircle2, TrendingDown, Plus, TrendingUp } from 'lucide-react';
 import type { Expense } from '@/lib/services/expense.service';
-import { recordExpenseAction, approveExpenseAction } from './actions';
-
-const initialExpenses: Expense[] = [
-  { id: 'EXP-001', type: 'Operational', vehicleId: 'v1', amount: 450, date: '2025-06-10', description: 'Fuel Refill', status: 'Approved' },
-  { id: 'EXP-002', type: 'Maintenance', vehicleId: 'v2', amount: 1200, date: '2025-06-15', description: 'Engine Repair', status: 'Pending' },
-];
+import { getExpensesAction, recordExpenseAction, approveExpenseAction } from './actions';
 
 export default function ExpensesPage() {
-  const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
-  const [loading, setLoading] = useState(false);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = async () => {
+    setLoading(true);
+    const data = await getExpensesAction();
+    setExpenses(data);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const handleRecordExpense = async () => {
     setLoading(true);
@@ -31,23 +38,23 @@ export default function ExpensesPage() {
     };
     
     const res = await recordExpenseAction(newExp);
-    setLoading(false);
     
-    if (res.success && res.data) {
-      setExpenses([res.data.expense, ...expenses]);
+    if (res.success) {
+      await fetchData();
     } else {
+      setLoading(false);
       alert(res.error);
     }
   };
 
   const handleApprove = async (expense: Expense) => {
     setLoading(true);
-    const res = await approveExpenseAction(expense);
-    setLoading(false);
+    const res = await approveExpenseAction(expense.id);
     
-    if (res.success && res.data) {
-      setExpenses(prev => prev.map(e => e.id === res.data!.expense.id ? res.data!.expense : e));
+    if (res.success) {
+      await fetchData();
     } else {
+      setLoading(false);
       alert(res.error);
     }
   };
