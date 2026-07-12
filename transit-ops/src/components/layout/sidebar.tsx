@@ -60,13 +60,15 @@ export function Sidebar() {
         })}
       </nav>
       <div className="border-t p-4">
-        <Link
-          href="/login"
-          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+        <button
+          onClick={() => {
+            import('@/app/(auth)/login/actions').then(({ logout }) => logout());
+          }}
+          className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
         >
           <LogOut className="h-4 w-4" />
           Logout
-        </Link>
+        </button>
       </div>
     </div>
   );
